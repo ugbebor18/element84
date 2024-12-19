@@ -19,16 +19,17 @@ jobs:
         with:
           terraform_version: 1.5.3
 
-      - name: Initialize Backend Resources
-        working-directory: terraform/backend
-        run: |
-          terraform init
-          terraform apply -auto-approve
+      - name: Initialize Terraform Backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: terraform init
 
-      - name: Initialize and Deploy Infrastructure
-        working-directory: terraform/infrastructure
+      - name: Plan and Apply Terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          terraform init
           terraform plan -out=tfplan
           terraform apply tfplan
 
@@ -37,12 +38,18 @@ jobs:
           zip lambda_function.zip lambda_function.py
 
       - name: Deploy Lambda Function
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws lambda update-function-code \
             --function-name merge-homeless-data \
             --zip-file fileb://lambda_function.zip
 
       - name: Upload Dataset Files to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://my-unique-datasets-bucket/raw/
           aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://my-unique-datasets-bucket/raw/
