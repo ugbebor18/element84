@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy Infrastructure
+    name: Deploy Infrastructure and Lambda
     runs-on: ubuntu-latest
 
     steps:
@@ -21,44 +21,40 @@ jobs:
         with:
           terraform_version: 1.5.3
 
-      # Step 3: Configure AWS Environment
-      - name: Configure AWS Credentials and Region
+      # Step 3: Configure AWS Credentials and Region
+      - name: Configure AWS Credentials
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
-        run: |
-          echo "AWS region set to $AWS_REGION"
-          aws sts get-caller-identity
+        run: aws sts get-caller-identity
 
-      # Step 4: Initialize Terraform Backend
+      # Step 4: Initialize and Apply Backend Resources
       - name: Initialize Backend
         working-directory: terraform/backend
         run: terraform init
 
-      # Step 5: Apply Backend Resources
       - name: Apply Backend Resources
         working-directory: terraform/backend
-        run: terraform apply -var-file=production.tfvars -auto-approve
+        run: terraform apply -auto-approve
 
-      # Step 6: Initialize Infrastructure
+      # Step 5: Initialize and Apply Main Infrastructure
       - name: Initialize Infrastructure
         working-directory: terraform/infrastructure
         run: terraform init
 
-      # Step 7: Plan and Apply Infrastructure
       - name: Plan and Apply Infrastructure
         working-directory: terraform/infrastructure
         run: |
-          terraform plan -var-file=production.tfvars -out=tfplan
+          terraform plan -out=tfplan
           terraform apply tfplan
 
-      # Step 8: Package Lambda Function
+      # Step 6: Package Lambda Function
       - name: Package Lambda Function
         run: |
           zip lambda_function.zip lambda_function.py
 
-      # Step 9: Deploy Lambda Function
+      # Step 7: Deploy Lambda Function
       - name: Deploy Lambda Function
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -69,12 +65,12 @@ jobs:
             --function-name merge-homeless-data \
             --zip-file fileb://lambda_function.zip
 
-      # Step 10: Upload Dataset Files to S3
+      # Step 8: Upload Dataset Files to S3
       - name: Upload Dataset Files to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-east-1
         run: |
-          aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://my-unique-datasets-bucket/raw/
-          aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://my-unique-datasets-bucket/raw/
+          aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://element84-datasets/raw/
+          aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://element84-datasets/raw/
