@@ -1,4 +1,5 @@
 terraform {
+  # Conditional backend configuration
   backend "s3" {
     bucket         = var.backend_bucket_name
     key            = "state/app.tfstate"
@@ -6,7 +7,11 @@ terraform {
     dynamodb_table = var.dynamodb_table_name
     encrypt        = true
   }
+
+  required_version = ">= 1.5.3"
 }
+
+
 
 # terraform {
 #   backend "s3" {

@@ -1,3 +1,4 @@
+# Backend configuration variables
 variable "backend_bucket_name" {
   description = "S3 bucket name for storing Terraform state"
   type        = string
@@ -11,27 +12,23 @@ variable "dynamodb_table_name" {
 }
 
 variable "aws_region" {
-  description = "AWS region for all resources"
+  description = "AWS region for backend resources"
   type        = string
   default     = "us-east-1" 
 }
 
-variable "datasets_bucket_name" {
-  description = "S3 bucket name for storing datasets"
-  type        = string
-  default     = "element84-datasets" 
-}
-
+# Lambda configuration variables
 variable "lambda_function_name" {
   description = "Name of the Lambda function"
   type        = string
   default     = "merge-homeless-data"
 }
 
-variable "api_gateway_name" {
-  description = "Name of the API Gateway"
+# Dataset bucket configuration variables
+variable "datasets_bucket_name" {
+  description = "S3 bucket name for storing datasets"
   type        = string
-  default     = "HomelessDataAPI"
+  default     = "element84-datasets" 
 }
 
 variable "s3_raw_data_path" {
@@ -44,4 +41,11 @@ variable "s3_processed_data_path" {
   description = "Path in the S3 bucket for processed data files"
   type        = string
   default     = "processed/"
+}
+
+# API Gateway configuration variables
+variable "api_gateway_name" {
+  description = "Name of the API Gateway"
+  type        = string
+  default     = "HomelessDataAPI"
 }

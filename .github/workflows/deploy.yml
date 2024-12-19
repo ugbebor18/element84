@@ -28,7 +28,7 @@ jobs:
 
       # Step 4: Apply Backend Resources
       - name: Apply Backend Resources
-        run: terraform apply -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
+        run: terraform apply -var="enable_backend=false" -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
 
   # Job 2: Reinitialize and Deploy Remaining Resources
   deploy-resources:
@@ -56,7 +56,7 @@ jobs:
         run: terraform apply -auto-approve
 
       # Step 5: Package Lambda Function
-      - name: Package Lambda Function
+      - name: Package Lambda
         run: |
           zip lambda_function.zip lambda_function.py
 
