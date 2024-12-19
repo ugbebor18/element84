@@ -23,20 +23,29 @@ jobs:
 
       # Step 3: Terraform Init
       - name: Initialize Terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init
 
-      # Step 4: Terraform Apply Backend
+      # Step 4: Deploy Backend Resources
       - name: Deploy Backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
 
-      # Step 5: Terraform Apply Infra Resources
-      - name: Deploy Resources
+      # Step 5: Deploy Remaining Resources
+      - name: Deploy Infrastructure
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve
 
       # Step 6: Package Lambda Function
       - name: Package Lambda
         run: |
-          zip lambda_function.zip infra/lambda_function.py
+          zip lambda_function.zip lambda_function.py
 
       # Step 7: Deploy Lambda Function
       - name: Deploy Lambda Function
@@ -54,5 +63,5 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp infra/files/SF_HOMELESS_ANXIETY.csv s3://element84-datasets/raw/SF_HOMELESS_ANXIETY.csv
-          aws s3 cp infra/files/SF_HOMELESS_DEMOGRAPHICS.csv s3://element84-datasets/raw/SF_HOMELESS_DEMOGRAPHICS.csv
+          aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://element84-datasets/raw/SF_HOMELESS_ANXIETY.csv
+          aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://element84-datasets/raw/SF_HOMELESS_DEMOGRAPHICS.csv
