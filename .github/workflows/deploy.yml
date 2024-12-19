@@ -47,7 +47,7 @@ jobs:
         with:
           terraform_version: 1.5.3
 
-      # Step 3: Reinitialize Terraform With Backend
+      # Step 3: Reinitialize Terraform Backend
       - name: Reinitialize Terraform Backend
         run: terraform init -reconfigure
 
