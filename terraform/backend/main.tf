@@ -1,9 +1,9 @@
 provider "aws" {
-  region = "us-east-1" # Explicitly set the correct region
+  region = "us-east-1"
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = var.backend_bucket_name
+  bucket = "friday-ugbebor-bkt"
 
   tags = {
     Name = "Terraform State Bucket"
@@ -11,9 +11,8 @@ resource "aws_s3_bucket" "terraform_state" {
 }
 
 resource "aws_dynamodb_table" "terraform_locks" {
-  name         = var.dynamodb_table_name
+  name         = "friday-ugbebor-locks"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
 
   attribute {
     name = "LockID"
