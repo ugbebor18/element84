@@ -1,6 +1,6 @@
 variable "backend_bucket_name" {
-  description = "S3 bucket name for storing Terraform state"
-  default     = "element84-terraform-state"
+  description = "S3 bucket name for Terraform state"
+  default     = "element84-terraform-state-assess"
 }
 
 variable "dynamodb_table_name" {
@@ -9,8 +9,8 @@ variable "dynamodb_table_name" {
 }
 
 variable "datasets_bucket_name" {
-  description = "S3 bucket name for storing datasets"
-  default     = "element84-datasets"
+  description = "S3 bucket name for datasets"
+  default     = "element84-datasets-assess"
 }
 
 variable "lambda_function_name" {
