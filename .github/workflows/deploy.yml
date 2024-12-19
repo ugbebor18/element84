@@ -6,115 +6,38 @@ on:
       - main
 
 jobs:
-  # Job 1: Create Backend Resources Without Backend
-  create-backend:
-    name: Create Backend Resources
+  deploy:
+    name: Deploy Infrastructure
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout Code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Temporarily Disable Backend Configuration
-      - name: Temporarily Disable Backend
-        run: |
-          if [ -f backend.tf ]; then
-            mv backend.tf backend.tf.disabled
-          fi
-
-      # Step 3: Set Up Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.3
 
-      # Step 4: Inject AWS Credentials
-      - name: Configure AWS Credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: aws sts get-caller-identity
+      - name: Initialize Terraform Backend
+        run: terraform init
 
-      # Step 5: Initialize Terraform Without Backend
-      - name: Initialize Terraform Without Backend
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform init -backend=false
-
-      # Step 6: Apply Backend Resources
-      - name: Apply Backend Resources
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform apply -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
-
-      # Step 7: Restore Backend Configuration
-      - name: Restore Backend Configuration
+      - name: Plan and Apply Terraform
         run: |
-          if [ -f backend.tf.disabled ]; then
-            mv backend.tf.disabled backend.tf
-          fi
+          terraform plan -out=tfplan
+          terraform apply tfplan
 
-  # Job 2: Reinitialize and Deploy Remaining Resources
-  deploy-resources:
-    name: Deploy Main Resources
-    runs-on: ubuntu-latest
-    needs: create-backend
-
-    steps:
-      # Step 1: Checkout Code
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Step 2: Set Up Terraform
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.3
-
-      # Step 3: Inject AWS Credentials
-      - name: Configure AWS Credentials
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: aws sts get-caller-identity
-
-      # Step 4: Reinitialize Terraform Backend
-      - name: Reinitialize Terraform Backend
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform init -reconfigure
-
-      # Step 5: Apply Remaining Resources
-      - name: Apply Remaining Resources
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform apply -auto-approve
-
-      # Step 6: Package Lambda Function
-      - name: Package Lambda
+      - name: Package Lambda Function
         run: |
           zip lambda_function.zip lambda_function.py
 
-      # Step 7: Deploy Lambda Function
       - name: Deploy Lambda Function
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws lambda update-function-code \
             --function-name merge-homeless-data \
             --zip-file fileb://lambda_function.zip
 
-      # Step 8: Upload Files to S3
-      - name: Upload Files to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Upload Dataset Files to S3
         run: |
-          aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://element84-datasets/raw/SF_HOMELESS_ANXIETY.csv
-          aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://element84-datasets/raw/SF_HOMELESS_DEMOGRAPHICS.csv
+          aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://my-unique-datasets-bucket/raw/
+          aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://my-unique-datasets-bucket/raw/
