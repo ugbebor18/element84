@@ -6,9 +6,8 @@ on:
       - main
 
 jobs:
-  # Job 1: Create Backend Resources Without Backend
-  create-backend:
-    name: Create Backend Resources
+  deploy:
+    name: Deploy Infrastructure and Lambda
     runs-on: ubuntu-latest
 
     steps:
@@ -28,46 +27,29 @@ jobs:
 
       # Step 4: Apply Backend Resources
       - name: Apply Backend Resources
-        run: terraform apply -var="enable_backend=false" -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
+        run: terraform apply -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
 
-  # Job 2: Reinitialize and Deploy Remaining Resources
-  deploy-resources:
-    name: Deploy Remaining Resources
-    runs-on: ubuntu-latest
-    needs: create-backend
-
-    steps:
-      # Step 1: Checkout Code
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Step 2: Set Up Terraform
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.3
-
-      # Step 3: Reinitialize Terraform Backend
+      # Step 5: Reinitialize Terraform With Backend
       - name: Reinitialize Terraform Backend
         run: terraform init -reconfigure
 
-      # Step 4: Apply Remaining Resources
+      # Step 6: Apply Remaining Resources
       - name: Apply Remaining Resources
         run: terraform apply -auto-approve
 
-      # Step 5: Package Lambda Function
+      # Step 7: Package Lambda Function
       - name: Package Lambda
         run: |
           zip lambda_function.zip lambda_function.py
 
-      # Step 6: Deploy Lambda Function
+      # Step 8: Deploy Lambda Function
       - name: Deploy Lambda Function
         run: |
           aws lambda update-function-code \
             --function-name merge-homeless-data \
             --zip-file fileb://lambda_function.zip
 
-      # Step 7: Upload Files to S3
+      # Step 9: Upload Files to S3
       - name: Upload Files to S3
         run: |
           aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://element84-datasets/raw/SF_HOMELESS_ANXIETY.csv

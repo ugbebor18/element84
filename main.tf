@@ -1,21 +1,10 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 4.0"
-    }
-  }
-
-  # Backend configuration is in a separate backend.tf file
-}
-
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
 
-# Step 1: S3 Bucket for Terraform State
+# S3 Bucket for Terraform State
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "element84-terraform-state"
+  bucket = var.backend_bucket_name
 
   tags = {
     Name = "Terraform State Bucket"
@@ -31,7 +20,7 @@ resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
 }
 
 resource "aws_dynamodb_table" "terraform_locks" {
-  name         = "element84-terraform-locks"
+  name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"
 
   attribute {
@@ -44,16 +33,16 @@ resource "aws_dynamodb_table" "terraform_locks" {
   }
 }
 
-# Step 2: S3 Bucket for Datasets
+# S3 Bucket for Datasets
 resource "aws_s3_bucket" "datasets" {
-  bucket = "element84-datasets"
+  bucket = var.datasets_bucket_name
 
   tags = {
     Name = "Dataset Bucket"
   }
 }
 
-# Step 3: IAM Role for Lambda
+# Lambda Function Execution Role
 resource "aws_iam_role" "lambda_exec" {
   name = "lambda-exec-role"
 
@@ -92,13 +81,13 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-# Step 4: Lambda Function
+# Lambda Function
 resource "aws_lambda_function" "merge_function" {
-  function_name = "merge-homeless-data"
+  function_name = var.lambda_function_name
   runtime       = "python3.9"
   role          = aws_iam_role.lambda_exec.arn
   handler       = "lambda_function.lambda_handler"
-  filename      = "lambda_function.zip" # Lambda function zip file
+  filename      = "lambda_function.zip"
 
   environment {
     variables = {
@@ -106,12 +95,14 @@ resource "aws_lambda_function" "merge_function" {
     }
   }
 
-  depends_on = [aws_s3_bucket.datasets, aws_iam_role.lambda_exec] # Ensure dependencies
+  tags = {
+    Name = "Merge Function"
+  }
 }
 
-# Step 5: API Gateway
+# API Gateway
 resource "aws_apigatewayv2_api" "http_api" {
-  name          = "HomelessDataAPI"
+  name          = var.api_gateway_name
   protocol_type = "HTTP"
 }
 
@@ -120,8 +111,6 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
   integration_type   = "AWS_PROXY"
   integration_uri    = aws_lambda_function.merge_function.invoke_arn
   payload_format_version = "2.0"
-
-  depends_on = [aws_lambda_function.merge_function]
 }
 
 resource "aws_apigatewayv2_route" "default_route" {
@@ -135,5 +124,4 @@ resource "aws_apigatewayv2_stage" "default_stage" {
   name   = "$default"
   auto_deploy = true
 }
-
 
