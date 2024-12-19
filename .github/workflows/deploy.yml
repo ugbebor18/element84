@@ -29,15 +29,28 @@ jobs:
         with:
           terraform_version: 1.5.3
 
-      # Step 4: Initialize Terraform Without Backend
+      # Step 4: Inject AWS Credentials
+      - name: Configure AWS Credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: aws sts get-caller-identity
+
+      # Step 5: Initialize Terraform Without Backend
       - name: Initialize Terraform Without Backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init -backend=false
 
-      # Step 5: Apply Backend Resources
+      # Step 6: Apply Backend Resources
       - name: Apply Backend Resources
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -auto-approve
 
-      # Step 6: Restore Backend Configuration
+      # Step 7: Restore Backend Configuration
       - name: Restore Backend Configuration
         run: |
           if [ -f backend.tf.disabled ]; then
@@ -61,28 +74,47 @@ jobs:
         with:
           terraform_version: 1.5.3
 
-      # Step 3: Reinitialize Terraform Backend
+      # Step 3: Inject AWS Credentials
+      - name: Configure AWS Credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: aws sts get-caller-identity
+
+      # Step 4: Reinitialize Terraform Backend
       - name: Reinitialize Terraform Backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init -reconfigure
 
-      # Step 4: Apply Remaining Resources
+      # Step 5: Apply Remaining Resources
       - name: Apply Remaining Resources
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform apply -auto-approve
 
-      # Step 5: Package Lambda Function
+      # Step 6: Package Lambda Function
       - name: Package Lambda
         run: |
           zip lambda_function.zip lambda_function.py
 
-      # Step 6: Deploy Lambda Function
+      # Step 7: Deploy Lambda Function
       - name: Deploy Lambda Function
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws lambda update-function-code \
             --function-name merge-homeless-data \
             --zip-file fileb://lambda_function.zip
 
-      # Step 7: Upload Files to S3
+      # Step 8: Upload Files to S3
       - name: Upload Files to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://element84-datasets/raw/SF_HOMELESS_ANXIETY.csv
           aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://element84-datasets/raw/SF_HOMELESS_DEMOGRAPHICS.csv
