@@ -5,7 +5,7 @@ variable "backend_bucket_name" {
 
 variable "dynamodb_table_name" {
   description = "DynamoDB table name for state locking"
-  default     = "element84-terraform-locks"
+  default     = "element84-terraform-locks-new"
 }
 
 variable "datasets_bucket_name" {
