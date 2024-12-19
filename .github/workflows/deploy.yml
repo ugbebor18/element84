@@ -11,66 +11,70 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout Code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Terraform for Backend
+      # Step 2: Set up Terraform
+      - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.5.3
 
+      # Step 3: Configure AWS Environment
+      - name: Configure AWS Credentials and Region
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+        run: |
+          echo "AWS region set to $AWS_REGION"
+          aws sts get-caller-identity
+
+      # Step 4: Initialize Terraform Backend
       - name: Initialize Backend
         working-directory: terraform/backend
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init
 
-      - name: Apply Backend
+      # Step 5: Apply Backend Resources
+      - name: Apply Backend Resources
         working-directory: terraform/backend
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: terraform apply -auto-approve
+        run: terraform apply -var-file=production.tfvars -auto-approve
 
-      - name: Set up Terraform for Infrastructure
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.3
-
+      # Step 6: Initialize Infrastructure
       - name: Initialize Infrastructure
         working-directory: terraform/infrastructure
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: terraform init
 
+      # Step 7: Plan and Apply Infrastructure
       - name: Plan and Apply Infrastructure
         working-directory: terraform/infrastructure
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          terraform plan -out=tfplan
+          terraform plan -var-file=production.tfvars -out=tfplan
           terraform apply tfplan
 
+      # Step 8: Package Lambda Function
       - name: Package Lambda Function
         run: |
           zip lambda_function.zip lambda_function.py
 
+      # Step 9: Deploy Lambda Function
       - name: Deploy Lambda Function
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
         run: |
           aws lambda update-function-code \
             --function-name merge-homeless-data \
             --zip-file fileb://lambda_function.zip
 
+      # Step 10: Upload Dataset Files to S3
       - name: Upload Dataset Files to S3
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
         run: |
           aws s3 cp files/SF_HOMELESS_ANXIETY.csv s3://my-unique-datasets-bucket/raw/
           aws s3 cp files/SF_HOMELESS_DEMOGRAPHICS.csv s3://my-unique-datasets-bucket/raw/
