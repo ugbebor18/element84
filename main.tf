@@ -11,6 +11,7 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
+# Enable versioning for the S3 bucket
 resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -19,10 +20,15 @@ resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
   }
 }
 
+# DynamoDB Table for State Locking
 resource "aws_dynamodb_table" "terraform_locks" {
   name         = var.dynamodb_table_name
   billing_mode = "PAY_PER_REQUEST"
 
+  # Define the primary key
+  hash_key = "LockID"
+
+  # Define the table's attributes
   attribute {
     name = "LockID"
     type = "S"
@@ -60,6 +66,7 @@ resource "aws_iam_role" "lambda_exec" {
   })
 }
 
+# IAM Policy for Lambda Function
 resource "aws_iam_role_policy" "lambda_policy" {
   role = aws_iam_role.lambda_exec.id
 
